@@ -144,3 +144,73 @@ export const getMe = async (userId: string) => {
   }
   return user;
 };
+
+export const verifyEmail = async (token: string) => {
+  const tokenHash = hashToken(token);
+  const storedToken = await authQueries.findEmailVerificationToken(tokenHash);
+
+  if (!storedToken) {
+    throw new AppError("Invalid or expired verification token", 400);
+  }
+
+  if (new Date() > storedToken.expires_at) {
+    await authQueries.deleteEmailVerificationToken(tokenHash);
+    throw new AppError("Verification token expired", 400);
+  }
+
+  await authQueries.updateUserVerificationStatus(storedToken.user_id, true);
+  await authQueries.deleteEmailVerificationToken(tokenHash);
+};
+
+export const forgotPassword = async (email: string) => {
+  const user = await authQueries.findUserByEmail(email);
+
+  // Always respond with success to prevent user enumeration
+  if (!user || user.auth_provider !== "email") {
+    return;
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashToken(resetToken);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
+
+  await authQueries.storePasswordResetToken(user.id, tokenHash, expiresAt);
+  await emailService.sendPasswordResetEmail(user.email, resetToken);
+};
+
+export const resetPassword = async (input: {
+  token: string;
+  password: string;
+}) => {
+  const tokenHash = hashToken(input.token);
+  const storedToken = await authQueries.findPasswordResetToken(tokenHash);
+
+  if (!storedToken) {
+    throw new AppError("Invalid or expired reset token", 400);
+  }
+
+  if (new Date() > storedToken.expires_at) {
+    await authQueries.deletePasswordResetToken(tokenHash);
+    throw new AppError("Reset token expired", 400);
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
+
+  await authQueries.updatePassword(storedToken.user_id, passwordHash);
+  await authQueries.deletePasswordResetToken(tokenHash);
+  await authQueries.deleteAllUserRefreshTokens(storedToken.user_id);
+};
+
+export const resendVerification = async (userId: string) => {
+  const user = await authQueries.findUserById(userId);
+  if (!user || user.is_verified) {
+    return;
+  }
+
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashToken(verificationToken);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+  await authQueries.storeEmailVerificationToken(user.id, tokenHash, expiresAt);
+  await emailService.sendVerificationEmail(user.email, verificationToken);
+};
