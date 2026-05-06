@@ -19,7 +19,7 @@ export const generateAccessToken = (payload: JwtPayload) => {
   return jwt.sign(payload, config.jwtSecret, { expiresIn: "15m" });
 };
 
-export const generateRefreshToken = (userId: string) => {
+export const generateRefreshToken = (_userId: string) => {
   const token = crypto.randomBytes(40).toString("hex");
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days

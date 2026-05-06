@@ -4,12 +4,10 @@ import { config } from "@/config/app.config.js";
 import { AppError } from "@/shared/utils/app-error.js";
 import type { JwtPayload } from "./auth.types.js";
 
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
+// Augment Express Request type
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: JwtPayload;
   }
 }
 
