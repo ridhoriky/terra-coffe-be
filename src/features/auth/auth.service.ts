@@ -7,6 +7,8 @@ import * as authQueries from "./auth.queries.js";
 import type { JwtPayload } from "./auth.types.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
+import * as emailService from "./email.service.js";
+
 const SALT_ROUNDS = 12;
 
 export const hashToken = (token: string) => {
@@ -39,12 +41,17 @@ export const register = async (input: RegisterInput) => {
     passwordHash,
   });
 
-  // TODO: Send verification email
-  // const verificationToken = crypto.randomBytes(32).toString('hex');
-  // const tokenHash = hashToken(verificationToken);
-  // const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-  // await authQueries.storeEmailVerificationToken(newUser.id, tokenHash, expiresAt);
-  // await emailService.sendVerificationEmail(newUser.email, verificationToken);
+  // Email verification
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashToken(verificationToken);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+  await authQueries.storeEmailVerificationToken(
+    newUser.id,
+    tokenHash,
+    expiresAt,
+  );
+  await emailService.sendVerificationEmail(newUser.email, verificationToken);
 
   return newUser;
 };
