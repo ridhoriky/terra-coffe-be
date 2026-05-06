@@ -12,6 +12,12 @@ const envSchema = z.object({
   JWT_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),
   ALLOWED_ORIGIN: z.string().default("http://localhost:3000"),
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 const envVars = envSchema.safeParse(process.env);
@@ -28,4 +34,12 @@ export const config = {
   jwtSecret: envVars.data.JWT_SECRET,
   jwtRefreshSecret: envVars.data.JWT_REFRESH_SECRET,
   allowedOrigin: envVars.data.ALLOWED_ORIGIN,
+  frontendUrl: envVars.data.FRONTEND_URL,
+  smtp: {
+    host: envVars.data.SMTP_HOST,
+    port: Number.parseInt(envVars.data.SMTP_PORT || "587", 10),
+    user: envVars.data.SMTP_USER,
+    pass: envVars.data.SMTP_PASS,
+    from: envVars.data.SMTP_FROM,
+  },
 };
