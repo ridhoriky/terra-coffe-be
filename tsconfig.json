@@ -4,7 +4,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "rootDir": "./",
-    "baseUrl": "./",
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,10 +13,12 @@
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
+    "isolatedModules": true,
+    "types": ["jest", "node"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*", "server.ts"],
-  "exclude": ["node_modules", "dist", "src/**/__tests__/*"]
+  "exclude": ["node_modules", "dist"]
 }
