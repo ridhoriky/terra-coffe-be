@@ -58,10 +58,11 @@ export const refresh = async (
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: "No refresh token provided" },
       });
+      return;
     }
 
     const { accessToken, refreshToken: newRefreshToken } =
@@ -111,10 +112,11 @@ export const getMe = async (
 ) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: { message: "Not authenticated" },
       });
+      return;
     }
 
     const user = await authService.getMe(req.user.sub);
