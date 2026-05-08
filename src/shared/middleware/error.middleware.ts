@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
 import { AppError } from "../utils/app-error.js";
 import { config } from "../../config/app.config.js";
+import { logger } from "../utils/logger.js";
 
 export const errorHandler = (
-  err: Error | AppError,
+  err: Error | AppError | ZodError,
   _req: Request,
   res: Response,
   _next: NextFunction,
@@ -18,8 +20,24 @@ export const errorHandler = (
     });
   }
 
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input data",
+        details: err.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+    });
+  }
+
   // Handle unexpected errors
-  console.error("Unexpected Error:", err);
+  if (config.nodeEnv !== "test") {
+    logger.error(err, "Unexpected Error");
+  }
 
   const statusCode = 500;
   const message =
