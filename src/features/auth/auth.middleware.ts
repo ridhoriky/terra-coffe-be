@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "@/config/app.config.js";
 import { AppError } from "@/shared/utils/app-error.js";
+import { logger } from "@/shared/utils/logger.js";
 import type { JwtPayload } from "./auth.types.js";
 
 // Augment Express Request type
@@ -31,7 +32,8 @@ export const authenticate = async (
       const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
       req.user = decoded;
       next();
-    } catch (_error) {
+    } catch (err) {
+      logger.error(err, "Invalid or expired token");
       throw new AppError("Invalid or expired token", 401);
     }
   } catch (error) {

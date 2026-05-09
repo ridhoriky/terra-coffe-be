@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { config } from "@/config/app.config.js";
+import { logger } from "@/shared/utils/logger.js";
 
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
@@ -16,7 +17,7 @@ export const sendEmail = async (options: {
   html: string;
 }): Promise<void> => {
   if (!config.smtp.host) {
-    console.warn("⚠️ SMTP not configured. Email not sent:", options.subject);
+    logger.warn(`⚠️ SMTP not configured. Email not sent: ${options.subject}`);
     return;
   }
 
@@ -28,7 +29,7 @@ export const sendEmail = async (options: {
       html: options.html,
     });
   } catch (error) {
-    console.error("❌ Error sending email:", error);
+    logger.error(error, "❌ Error sending email");
     // Don't throw error to prevent breaking the request flow
   }
 };
