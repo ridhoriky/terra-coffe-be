@@ -127,7 +127,7 @@ export const login = async (
 
 export const refreshTokens = async (
   refreshToken: string,
-): Promise<{ accessToken: string; refreshToken: string }> => {
+): Promise<{ accessToken: string; refreshToken: string; user: AuthUser }> => {
   const tokenHash = hashToken(refreshToken);
   const storedToken = await authQueries.findRefreshToken(tokenHash);
 
@@ -160,7 +160,7 @@ export const refreshTokens = async (
 
   await authQueries.storeRefreshToken(user.id, newTokenHash, expiresAt);
 
-  return { accessToken, refreshToken: newRefreshToken };
+  return { accessToken, refreshToken: newRefreshToken, user };
 };
 
 export const logout = async (refreshToken: string): Promise<void> => {

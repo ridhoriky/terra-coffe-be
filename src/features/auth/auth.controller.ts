@@ -102,14 +102,17 @@ export const refresh = async (
       return;
     }
 
-    const { accessToken, refreshToken: newRefreshToken } =
-      await authService.refreshTokens(refreshToken);
+    const {
+      accessToken,
+      refreshToken: newRefreshToken,
+      user,
+    } = await authService.refreshTokens(refreshToken);
 
     res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
 
     res.status(200).json({
       success: true,
-      data: { accessToken },
+      data: { accessToken, user },
     });
   } catch (error) {
     next(error);
