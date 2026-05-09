@@ -4,22 +4,24 @@ import jwt from "jsonwebtoken";
 import { config } from "@/config/app.config.js";
 import { AppError } from "@/shared/utils/app-error.js";
 import * as authQueries from "./auth.queries.js";
-import type { JwtPayload } from "./auth.types.js";
+import type { JwtPayload, AuthUser } from "./auth.types.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
 
 import * as emailService from "./email.service.js";
 
 const SALT_ROUNDS = 12;
 
-export const hashToken = (token: string) => {
+export const hashToken = (token: string): string => {
   return crypto.createHash("sha256").update(token).digest("hex");
 };
 
-export const generateAccessToken = (payload: JwtPayload) => {
+export const generateAccessToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, config.jwtSecret, { expiresIn: "15m" });
 };
 
-export const generateRefreshToken = (_userId: string) => {
+export const generateRefreshToken = (
+  _userId: string,
+): { token: string; expiresAt: Date } => {
   const token = crypto.randomBytes(40).toString("hex");
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
@@ -27,7 +29,7 @@ export const generateRefreshToken = (_userId: string) => {
   return { token, expiresAt };
 };
 
-export const register = async (input: RegisterInput) => {
+export const register = async (input: RegisterInput): Promise<AuthUser> => {
   const existingUser = await authQueries.findUserByEmail(input.email);
   if (existingUser) {
     throw new AppError("User with this email already exists", 400);
@@ -56,15 +58,21 @@ export const register = async (input: RegisterInput) => {
   return newUser;
 };
 
-export const login = async (input: LoginInput) => {
+export const login = async (
+  input: LoginInput,
+): Promise<{
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+}> => {
   const user = await authQueries.findUserByEmail(input.email);
-  if (!user || !user.password_hash) {
+  if (!user?.passwordHash) {
     throw new AppError("Invalid email or password", 401);
   }
 
   const isPasswordMatch = await bcrypt.compare(
     input.password,
-    user.password_hash,
+    user.passwordHash,
   );
   if (!isPasswordMatch) {
     throw new AppError("Invalid email or password", 401);
@@ -74,7 +82,7 @@ export const login = async (input: LoginInput) => {
     sub: user.id,
     email: user.email,
     role: user.role,
-    is_verified: user.is_verified,
+    isVerified: user.isVerified,
   });
 
   const { token: refreshToken, expiresAt } = generateRefreshToken(user.id);
@@ -88,15 +96,18 @@ export const login = async (input: LoginInput) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      is_verified: user.is_verified,
-      avatar_url: user.avatar_url,
+      isVerified: user.isVerified,
+      avatarUrl: user.avatarUrl,
+      authProvider: user.authProvider,
     },
     accessToken,
     refreshToken,
   };
 };
 
-export const refreshTokens = async (refreshToken: string) => {
+export const refreshTokens = async (
+  refreshToken: string,
+): Promise<{ accessToken: string; refreshToken: string }> => {
   const tokenHash = hashToken(refreshToken);
   const storedToken = await authQueries.findRefreshToken(tokenHash);
 
@@ -104,12 +115,12 @@ export const refreshTokens = async (refreshToken: string) => {
     throw new AppError("Invalid refresh token", 401);
   }
 
-  if (new Date() > storedToken.expires_at) {
+  if (new Date() > storedToken.expiresAt) {
     await authQueries.deleteRefreshToken(tokenHash);
     throw new AppError("Refresh token expired", 401);
   }
 
-  const user = await authQueries.findUserById(storedToken.user_id);
+  const user = await authQueries.findUserById(storedToken.userId);
   if (!user) {
     throw new AppError("User not found", 404);
   }
@@ -121,7 +132,7 @@ export const refreshTokens = async (refreshToken: string) => {
     sub: user.id,
     email: user.email,
     role: user.role,
-    is_verified: user.is_verified,
+    isVerified: user.isVerified,
   });
 
   const { token: newRefreshToken, expiresAt } = generateRefreshToken(user.id);
@@ -132,12 +143,12 @@ export const refreshTokens = async (refreshToken: string) => {
   return { accessToken, refreshToken: newRefreshToken };
 };
 
-export const logout = async (refreshToken: string) => {
+export const logout = async (refreshToken: string): Promise<void> => {
   const tokenHash = hashToken(refreshToken);
   await authQueries.deleteRefreshToken(tokenHash);
 };
 
-export const getMe = async (userId: string) => {
+export const getMe = async (userId: string): Promise<AuthUser> => {
   const user = await authQueries.findUserById(userId);
   if (!user) {
     throw new AppError("User not found", 404);
@@ -145,7 +156,7 @@ export const getMe = async (userId: string) => {
   return user;
 };
 
-export const verifyEmail = async (token: string) => {
+export const verifyEmail = async (token: string): Promise<void> => {
   const tokenHash = hashToken(token);
   const storedToken = await authQueries.findEmailVerificationToken(tokenHash);
 
@@ -153,20 +164,19 @@ export const verifyEmail = async (token: string) => {
     throw new AppError("Invalid or expired verification token", 400);
   }
 
-  if (new Date() > storedToken.expires_at) {
+  if (new Date() > storedToken.expiresAt) {
     await authQueries.deleteEmailVerificationToken(tokenHash);
     throw new AppError("Verification token expired", 400);
   }
 
-  await authQueries.updateUserVerificationStatus(storedToken.user_id, true);
+  await authQueries.updateUserVerificationStatus(storedToken.userId, true);
   await authQueries.deleteEmailVerificationToken(tokenHash);
 };
 
-export const forgotPassword = async (email: string) => {
+export const forgotPassword = async (email: string): Promise<void> => {
   const user = await authQueries.findUserByEmail(email);
 
-  // Always respond with success to prevent user enumeration
-  if (!user || user.auth_provider !== "email") {
+  if (user?.authProvider !== "email") {
     return;
   }
 
@@ -181,7 +191,7 @@ export const forgotPassword = async (email: string) => {
 export const resetPassword = async (input: {
   token: string;
   password: string;
-}) => {
+}): Promise<void> => {
   const tokenHash = hashToken(input.token);
   const storedToken = await authQueries.findPasswordResetToken(tokenHash);
 
@@ -189,21 +199,21 @@ export const resetPassword = async (input: {
     throw new AppError("Invalid or expired reset token", 400);
   }
 
-  if (new Date() > storedToken.expires_at) {
+  if (new Date() > storedToken.expiresAt) {
     await authQueries.deletePasswordResetToken(tokenHash);
     throw new AppError("Reset token expired", 400);
   }
 
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
 
-  await authQueries.updatePassword(storedToken.user_id, passwordHash);
+  await authQueries.updatePassword(storedToken.userId, passwordHash);
   await authQueries.deletePasswordResetToken(tokenHash);
-  await authQueries.deleteAllUserRefreshTokens(storedToken.user_id);
+  await authQueries.deleteAllUserRefreshTokens(storedToken.userId);
 };
 
-export const resendVerification = async (userId: string) => {
+export const resendVerification = async (userId: string): Promise<void> => {
   const user = await authQueries.findUserById(userId);
-  if (!user || user.is_verified) {
+  if (!user || user.isVerified) {
     return;
   }
 

@@ -15,7 +15,7 @@ export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith("Bearer ")) {
@@ -31,7 +31,7 @@ export const authenticate = async (
       const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
       req.user = decoded;
       next();
-    } catch (error) {
+    } catch (_error) {
       throw new AppError("Invalid or expired token", 401);
     }
   } catch (error) {
@@ -43,15 +43,15 @@ export const requireVerified = (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
-  if (!req.user?.is_verified) {
+): void => {
+  if (!req.user?.isVerified) {
     return next(new AppError("Email not verified", 403));
   }
   next();
 };
 
 export const restrictTo = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(
         new AppError("You do not have permission to perform this action", 403),

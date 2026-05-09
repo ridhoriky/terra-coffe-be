@@ -4,7 +4,7 @@ export interface JwtPayload {
   sub: string; // user UUID
   email: string;
   role: UserRole;
-  is_verified: boolean;
+  isVerified: boolean;
   iat?: number;
   exp?: number;
 }
@@ -14,7 +14,16 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
-  is_verified: boolean;
-  avatar_url?: string;
-  auth_provider: "email" | "google";
+  isVerified: boolean;
+  avatarUrl?: string | undefined;
+  authProvider: "email" | "google";
+}
+
+export interface UserWithPassword extends AuthUser {
+  passwordHash: string;
+}
+
+export interface TokenRecord {
+  userId: string;
+  expiresAt: Date;
 }

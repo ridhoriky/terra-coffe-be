@@ -20,7 +20,7 @@ export const register = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const input = registerSchema.parse(req.body);
     const user = await authService.register(input);
@@ -34,7 +34,11 @@ export const register = async (
   }
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction) => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const input = loginSchema.parse(req.body);
     const { user, accessToken, refreshToken } = await authService.login(input);
@@ -54,7 +58,7 @@ export const refresh = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
@@ -83,7 +87,7 @@ export const logout = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (refreshToken) {
@@ -109,7 +113,7 @@ export const getMe = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401).json({
@@ -134,7 +138,7 @@ export const verifyEmail = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const { token } = verifyEmailSchema.parse(req.body);
     await authService.verifyEmail(token);
@@ -152,7 +156,7 @@ export const forgotPassword = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const { email } = forgotPasswordSchema.parse(req.body);
     await authService.forgotPassword(email);
@@ -170,7 +174,7 @@ export const resetPassword = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const input = resetPasswordSchema.parse(req.body);
     await authService.resetPassword(input);
@@ -188,7 +192,7 @@ export const resendVerification = async (
   req: Request,
   res: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     if (!req.user) {
       throw new AppError("Not authenticated", 401);
