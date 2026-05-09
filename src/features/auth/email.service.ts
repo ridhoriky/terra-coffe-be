@@ -14,7 +14,7 @@ export const sendEmail = async (options: {
   to: string;
   subject: string;
   html: string;
-}) => {
+}): Promise<void> => {
   if (!config.smtp.host) {
     console.warn("⚠️ SMTP not configured. Email not sent:", options.subject);
     return;
@@ -33,7 +33,10 @@ export const sendEmail = async (options: {
   }
 };
 
-export const sendVerificationEmail = async (email: string, token: string) => {
+export const sendVerificationEmail = async (
+  email: string,
+  token: string,
+): Promise<void> => {
   const verificationUrl = `${config.frontendUrl}/verify-email?token=${token}`;
   const html = `
     <h1>Verify your email</h1>
@@ -48,7 +51,10 @@ export const sendVerificationEmail = async (email: string, token: string) => {
   });
 };
 
-export const sendPasswordResetEmail = async (email: string, token: string) => {
+export const sendPasswordResetEmail = async (
+  email: string,
+  token: string,
+): Promise<void> => {
   const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
   const html = `
     <h1>Reset your password</h1>

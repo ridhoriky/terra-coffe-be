@@ -9,7 +9,7 @@ export const globalLimiter = rateLimit({
   limit: 100, // Limit each IP to 100 requests per `window`
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  handler: (req, res, next) => {
+  handler: (req, res, next): void => {
     next(new AppError("Too many requests, please try again later.", 429));
   },
 });
@@ -22,7 +22,7 @@ export const authLimiter = rateLimit({
   limit: 10, // Limit each IP to 10 requests per hour (increased slightly for usability)
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  handler: (req, res, next) => {
+  handler: (req, res, next): void => {
     next(
       new AppError(
         "Too many login attempts. Please try again after an hour.",
@@ -40,7 +40,7 @@ export const registrationLimiter = rateLimit({
   limit: 5, // Limit each IP to 5 registrations per hour
   standardHeaders: "draft-7",
   legacyHeaders: false,
-  handler: (req, res, next) => {
+  handler: (req, res, next): void => {
     next(
       new AppError(
         "Too many accounts created from this IP. Please try again later.",

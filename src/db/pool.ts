@@ -11,13 +11,13 @@ export const pool = new Pool({
 });
 
 // Graceful shutdown
-process.on("SIGTERM", async () => {
+process.on("SIGTERM", async (): Promise<void> => {
   console.info("SIGTERM signal received: closing HTTP server");
   await pool.end();
   process.exit(0);
 });
 
-process.on("SIGINT", async () => {
+process.on("SIGINT", async (): Promise<void> => {
   console.info("SIGINT signal received: closing HTTP server");
   await pool.end();
   process.exit(0);

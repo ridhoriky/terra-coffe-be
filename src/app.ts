@@ -31,9 +31,8 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-
 // Health Check
-app.get("/health", (_req, res) => {
+app.get("/health", (_req, res): void => {
   res.status(200).json({ status: "ok" });
 });
 

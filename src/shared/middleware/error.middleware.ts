@@ -9,19 +9,20 @@ export const errorHandler = (
   _req: Request,
   res: Response,
   _next: NextFunction,
-) => {
+): void => {
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       success: false,
       error: {
         code: err.constructor.name.toUpperCase(),
         message: err.message,
       },
     });
+    return;
   }
 
   if (err instanceof ZodError) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       error: {
         code: "VALIDATION_ERROR",
@@ -32,6 +33,7 @@ export const errorHandler = (
         })),
       },
     });
+    return;
   }
 
   // Handle unexpected errors
@@ -45,7 +47,7 @@ export const errorHandler = (
       ? "Something went wrong"
       : err.message || "Internal Server Error";
 
-  return res.status(statusCode).json({
+  res.status(statusCode).json({
     success: false,
     error: {
       code: "INTERNAL_SERVER_ERROR",
