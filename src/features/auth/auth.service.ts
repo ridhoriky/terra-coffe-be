@@ -6,6 +6,7 @@ import { AppError } from "@/shared/utils/app-error.js";
 import * as authQueries from "./auth.queries.js";
 import type { JwtPayload, AuthUser } from "./auth.types.js";
 import type { RegisterInput, LoginInput } from "./auth.schema.js";
+import { pool } from "@/db/pool.js";
 
 import * as emailService from "./email.service.js";
 
@@ -37,25 +38,44 @@ export const register = async (input: RegisterInput): Promise<AuthUser> => {
 
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
 
-  const newUser = await authQueries.createUser({
-    name: input.name,
-    email: input.email,
-    passwordHash,
-  });
+  const client = await pool.connect();
 
-  // Email verification
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = hashToken(verificationToken);
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+  try {
+    await client.query("BEGIN");
 
-  await authQueries.storeEmailVerificationToken(
-    newUser.id,
-    tokenHash,
-    expiresAt,
-  );
-  await emailService.sendVerificationEmail(newUser.email, verificationToken);
+    const newUser = await authQueries.createUser(
+      {
+        name: input.name,
+        email: input.email,
+        passwordHash,
+      },
+      client,
+    );
 
-  return newUser;
+    // Email verification
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = hashToken(verificationToken);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+    await authQueries.storeEmailVerificationToken(
+      newUser.id,
+      tokenHash,
+      expiresAt,
+      client,
+    );
+
+    await client.query("COMMIT");
+
+    // Send email AFTER commit to ensure user exists
+    await emailService.sendVerificationEmail(newUser.email, verificationToken);
+
+    return newUser;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 export const login = async (
