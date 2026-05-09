@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import * as authService from "./auth.service.js";
+import * as oauthService from "./oauth.service.js";
 import {
   registerSchema,
   loginSchema,
@@ -8,6 +9,7 @@ import {
   resetPasswordSchema,
 } from "./auth.schema.js";
 import { AppError } from "@/shared/utils/app-error.js";
+import { config } from "@/config/app.config.js";
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -49,6 +51,37 @@ export const login = async (
       success: true,
       data: { user, accessToken },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const googleCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const code = req.query.code as string;
+    if (!code) {
+      throw new AppError("No code provided", 400);
+    }
+
+    const tokens = await oauthService.getTokensFromCode(code);
+    const idToken = tokens.id_token;
+
+    if (!idToken) {
+      throw new AppError("Failed to get ID token from Google", 401);
+    }
+
+    const googleData = await oauthService.verifyGoogleToken(idToken);
+
+    const { accessToken, refreshToken } =
+      await oauthService.upsertGoogleUser(googleData);
+
+    res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
+
+    res.redirect(`${config.frontendUrl}/auth/callback?token=${accessToken}`);
   } catch (error) {
     next(error);
   }

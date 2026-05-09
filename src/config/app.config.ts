@@ -18,12 +18,15 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
 });
 
 const envVars = envSchema.safeParse(process.env);
 
 if (!envVars.success) {
-  console.error("❌ Invalid environment variables:", envVars.error.format());
+  console.error("❌ Invalid environment variables:", envVars.error.issues);
   throw new Error("Invalid environment variables");
 }
 
@@ -35,6 +38,11 @@ export const config = {
   jwtRefreshSecret: envVars.data.JWT_REFRESH_SECRET,
   allowedOrigin: envVars.data.ALLOWED_ORIGIN,
   frontendUrl: envVars.data.FRONTEND_URL,
+  google: {
+    clientId: envVars.data.GOOGLE_CLIENT_ID,
+    clientSecret: envVars.data.GOOGLE_CLIENT_SECRET,
+    redirectUri: envVars.data.GOOGLE_REDIRECT_URI,
+  },
   smtp: {
     host: envVars.data.SMTP_HOST,
     port: Number.parseInt(envVars.data.SMTP_PORT || "587", 10),

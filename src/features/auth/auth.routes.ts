@@ -8,14 +8,15 @@ import {
 
 const router = Router();
 
+// Public routes
 router.post("/register", registrationLimiter, authController.register);
 router.post("/login", authLimiter, authController.login);
+router.get("/google/callback", authController.googleCallback);
 router.post("/refresh", authController.refresh);
 router.post("/logout", authController.logout);
-
 router.post("/verify-email", authController.verifyEmail);
-router.post("/forgot-password", authLimiter, authController.forgotPassword);
-router.post("/reset-password", authLimiter, authController.resetPassword);
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/reset-password", authController.resetPassword);
 router.post(
   "/resend-verification",
   authenticate,
