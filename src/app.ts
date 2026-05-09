@@ -7,7 +7,7 @@ import { config } from "./config/app.config.js";
 import { logger } from "./shared/utils/logger.js";
 import { errorHandler } from "./shared/middleware/error.middleware.js";
 import { globalLimiter } from "./shared/middleware/rate-limit.middleware.js";
-import { authRoutes } from "./features/auth/auth.routes.js";
+import { authRoutes } from "./features/auth/index.js";
 
 const app = express();
 
